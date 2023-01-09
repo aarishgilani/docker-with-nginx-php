@@ -1,0 +1,59 @@
+# Compose file helps run and link multiple containers for running application
+# This is a setup for laravel based application
+# This composer file spins up nginx - php - mysql container and links them up to serve laravel application
+
+# We start by defining the version of docker engine
+version: '3.8'
+
+# All the services, i.e, containers required to run the application are defined under here
+services:
+
+  # Start by defining nginx container
+  nginx:
+    # Build defines which image to use for this container, you can either pull it from docker hub or create a custom docker file. For nginx I am using a custom dockerfile declared under context
+    build:
+      # Context defines where to look for the docker file to build nginx container
+      context: .
+      # Defines name of the docker file
+      dockerfile: nginx.dockerfile
+    # Exposing 80 port in our container to the host machine to access the serve response in the browser
+    ports:
+      - 80:80
+    # Linking files on host machine to be accessed by nginx server to display results
+    volumes:
+      - ./src:/var/www/html
+    # This defines which container are required for nginx to run
+    # By this definition docker would run the following containers before loading nginx server
+    depends_on:
+      - mysql
+      - php
+  # Definition of SQL database
+  mysql:
+    # In this case I am pulling a stable version of mysql from docker hub itself
+    image: mysql:5.7
+    # Exposing 3006 ports so that we can access this database from our local machine by using softwares like table plus and so on
+    # Note: 3006 is default port of operation for sql based database
+    ports:
+      - 3306:3306
+    # Defining environment variables for sql db
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: secret
+    # Docker deletes everything when you stop the container, here we are linking sql database to a folder on our host machine
+    # This way the data would be copied to host machine when we close the container services and copied back when we spin them up again
+    volumes: 
+      - ./mysql:/var/lib/sql
+  # Definition for container running php services
+  php:
+    # Here again I am using local docker file to build this container of off
+    build:
+      # Context defines where to look for docker files, typically this is done on the host machine
+      context: .
+      # Actual name of the docker file is mentioned here
+      dockerfile: php.dockerfile
+    # Linking volumes for php to access and load results from
+    volumes:
+      -  ./src:/var/www/html
+
